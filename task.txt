@@ -1,0 +1,14 @@
+//For User
+Login with jwt token 
+register with jwt token
+Auth middleware return user details after decode jwt token
+Update Profile with cnic image etcrea all fields //Remaining
+
+// For admin 
+complete user Curd
+
+
+//Check  Status using user id from user
+1:Check in with current time
+2:Check Out 
+3:WorkStatus

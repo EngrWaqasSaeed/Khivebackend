@@ -1,0 +1,82 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = "postgresql://postgres:0000@localhost:5432/khive_pointer?schema=public"
+}
+
+enum UserRole {
+  USER
+  ADMIN
+}
+model User {
+  id              Int               @id @unique @default(autoincrement())
+  name            String            @db.VarChar(255)
+  email           String            @unique @db.VarChar(255)
+  password        String            @db.VarChar(255)
+  cnic            Int?              @unique
+  role            UserRole          @default(USER)
+  image           String? 
+  joiningDate     DateTime?
+  dateOfBirth     DateTime?
+  attendences     Attendence[]
+  meetings        Meeting[]
+  breaks          Break[]
+  projectDeliveries Project_Delivery[]
+}
+
+enum Status {
+  ONSITE
+  WORKFORMHOME
+  HYBRID
+}
+
+model Attendence {
+  id         Int      @id @default(autoincrement())
+  date       DateTime
+  todayTask  String?
+  dayReport  String?
+  workStatus Status   @default(ONSITE)
+  checkin    DateTime
+  checkout   DateTime?
+  userId     Int
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+enum Join_Status {
+  EARLY
+  ONTIME
+  LATE
+  MISSED
+}
+
+model Meeting {
+  id             Int          @id @default(autoincrement())
+  joining_status Join_Status  @default(MISSED)
+  date           DateTime     
+  userId         Int
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Break {
+  id            Int          @id @default(autoincrement())
+  break_status  Join_Status  @default(MISSED)
+  date          DateTime
+  userId        Int 
+  user          User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Project_Delivery {
+  id             Int          @id @default(autoincrement())
+  project_status Join_Status  @default(ONTIME)
+  userId         Int
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
