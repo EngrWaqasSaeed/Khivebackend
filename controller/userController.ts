@@ -23,7 +23,6 @@ export const updateProfile = async (
       joiningDate: z.date().optional(),
       dateOfBirth: z.date().optional(),
       image: z.string().optional(),
-      points: z.number().optional(),
     });
 
     const data = updateUserSchema.parse(body);
@@ -139,7 +138,6 @@ export const updateUser = async (
       res.status(404).json({ error: "User not found." });
       return;
     }
-    console.log("joiningdate is:", joiningDate);
     const updatedUser = await prisma.user.update({
       where: { id: Number(id) },
       data: {
@@ -151,6 +149,36 @@ export const updateUser = async (
     });
 
     res.status(200).json("User Updated Successfully" + updatedUser);
+  } catch (error) {
+    console.error("Error updating user:", error);
+    res
+      .status(500)
+      .json({ error: "An error occurred while updating the user." });
+  }
+};
+
+export const updatePoints = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  const { id } = req.params;
+  const { points } = req.body;
+
+  try {
+    const user = await prisma.user.findUnique({ where: { id: Number(id) } });
+
+    if (!user) {
+      res.status(404).json({ error: "User not found." });
+      return;
+    }
+    const updatedUser = await prisma.user.update({
+      where: { id: Number(id) },
+      data: {
+        points: Number(points),
+      },
+    });
+
+    res.status(200).json("User Points Updated Successfully" + updatedUser);
   } catch (error) {
     console.error("Error updating user:", error);
     res

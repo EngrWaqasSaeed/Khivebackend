@@ -96,7 +96,8 @@ export const checkinUser = async (
     if (currentDate.getHours() > 10) {
       // per min decrease 50 points
       const diff = currentDate.getHours() - 10;
-      const points = 100 - 50 * diff;
+      const diffInMin = diff * 60 + currentDate.getMinutes();
+      const points = 50 * diffInMin;
 
       pointsService.changeUserPoints(user.id, points);
     }
@@ -149,6 +150,13 @@ export const checkoutUser = async (
         dayReport: dayReport || null, // Save the day report, if provided
       },
     });
+
+    // Calculate points based difference from the 6pm
+    const currentDate = new Date();
+    const diff = currentDate.getHours() - 18;
+    const points = 200 * diff;
+
+    pointsService.changeUserPoints(user.id, points);
 
     // Respond with the updated check-in record
     res.status(200).json({

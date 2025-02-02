@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import { PrismaClient } from "@prisma/client";
+import { pointsService } from "../services/points.services";
 
 const prisma = new PrismaClient();
 
@@ -27,6 +28,18 @@ export const meetingStatus = async (
       if (!validStatuses.includes(joining_status)) {
         throw new Error(`Invalid status: ${joining_status}`);
       }
+
+      // check status and update points
+      if (joining_status === "EARLY") {
+        pointsService.changeUserPoints(userId, 100);
+      } else if (joining_status === "ONTIME") {
+        pointsService.changeUserPoints(userId, 50);
+      } else if (joining_status === "LATE") {
+        pointsService.changeUserPoints(userId, -50);
+      } else if (joining_status === "MISSED") {
+        pointsService.changeUserPoints(userId, -500);
+      }
+
       return {
         userId,
         joining_status,
