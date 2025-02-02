@@ -1,7 +1,7 @@
 import express from 'express'
 import {
-  allAttendence,
   allAttendenceByDate,
+  allAttendence,
   checkinUser,
   checkoutUser,
   deleteByIdAndDate,

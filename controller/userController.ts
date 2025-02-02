@@ -1,6 +1,7 @@
 import { Request, Response } from 'express'
 import { PrismaClient } from '@prisma/client'
 import { z, ZodError } from 'zod'
+import { userAttendence } from './attendenceController'
 
 const prisma = new PrismaClient()
 
@@ -82,7 +83,12 @@ export const getAllUsers = async (
   res: Response
 ): Promise<void> => {
   try {
-    const users = await prisma.user.findMany()
+    const users = await prisma.user.findMany({
+      include: {
+        attendences: true
+      }
+    })
+
     res.status(200).json(users)
   } catch (error) {
     console.error('Error fetching users:', error)
@@ -96,6 +102,7 @@ export const getUserById = async (
   res: Response
 ): Promise<void> => {
   const { id } = req.params
+  console.log('User id in get user by id is:', id)
   try {
     const user = await prisma.user.findUnique({
       where: { id: Number(id) }
@@ -121,7 +128,7 @@ export const updateUser = async (
   res: Response
 ): Promise<void> => {
   const { id } = req.params
-  const { name, email, password } = req.body
+  const { name, cnic, joiningDate, dateOfBirth } = req.body
 
   try {
     const user = await prisma.user.findUnique({ where: { id: Number(id) } })
@@ -130,13 +137,18 @@ export const updateUser = async (
       res.status(404).json({ error: 'User not found.' })
       return
     }
-
+    console.log('joiningdate is:', joiningDate)
     const updatedUser = await prisma.user.update({
       where: { id: Number(id) },
-      data: { name, email, password }
+      data: {
+        name,
+        cnic: Number(cnic),
+        joiningDate: new Date(joiningDate),
+        dateOfBirth: new Date(dateOfBirth)
+      }
     })
 
-    res.status(200).json(updatedUser)
+    res.status(200).json('User Updated Successfully' + updatedUser)
   } catch (error) {
     console.error('Error updating user:', error)
     res

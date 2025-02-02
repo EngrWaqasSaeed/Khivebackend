@@ -140,6 +140,48 @@ export const checkoutUser = async (
   }
 }
 
+//Get the Current Checkin User
+export const getUserDetails = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    const user = req.user
+
+    if (!user?.id) {
+      res.status(401).json({ message: 'User not authenticated!' })
+      return
+    }
+
+    // Fetch user details along with their check-in/check-out history
+    const userDetails = await prisma.user.findUnique({
+      where: { id: user.id },
+      select: {
+        name: true,
+        email: true,
+        role: true,
+        cnic: true,
+        image: true
+      }
+    })
+
+    if (!userDetails) {
+      res.status(404).json({ message: 'User not found!' })
+      return
+    }
+
+    // Respond with user details
+    res.status(200).json({
+      message: 'User details retrieved successfully.',
+      data: userDetails
+    })
+    //If error Occurs
+  } catch (error) {
+    console.error('Error retrieving user details:', error)
+    res.status(500).json({ message: 'Internal server error.' })
+  }
+}
+
 //Show all Attendence record; @Controlled By Admin Only
 export const allAttendence = async (
   req: Request,

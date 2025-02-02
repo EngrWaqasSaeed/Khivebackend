@@ -1,41 +1,47 @@
-import { Request, Response } from 'express'
+import { Request, Response, NextFunction } from 'express'
 import { PrismaClient } from '@prisma/client'
+
 const prisma = new PrismaClient()
 
-export const meetingStatus = async (req: Request, res: Response) => {
+export const meetingStatus = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
   try {
     const user = req.user
-    const { joining_status } = req.body
-
-    const validStatuses = ['EARLY', 'ONTIME', 'LATE', 'MISSED']
-
-    if (!validStatuses.includes(joining_status)) {
-      res.status(400).json({ message: 'Invalid meeting  status is provided!' })
-      return
-    }
+    const { statuses } = req.body // Expecting an array of user statuses
 
     if (!user?.id) {
       res.status(403).json({ message: 'User not authenticated!' })
       return
     }
-    const meeting_Status = await prisma.meeting.create({
-      data: {
-        userId: user?.id,
-        joining_status:
-          (joining_status as 'EARLY') || 'ONTIME' || 'LATE' || 'MISSED',
 
+    if (!Array.isArray(statuses) || statuses.length === 0) {
+      res.status(400).json({ message: 'Invalid data format!' })
+      return
+    }
+
+    const validStatuses = ['EARLY', 'ONTIME', 'LATE', 'MISSED']
+    const meetingData = statuses.map(({ userId, joining_status }) => {
+      if (!validStatuses.includes(joining_status)) {
+        throw new Error(`Invalid status: ${joining_status}`)
+      }
+      return {
+        userId,
+        joining_status,
         date: new Date()
       }
     })
+
+    await prisma.meeting.createMany({ data: meetingData })
+
     res.status(201).json({
-      message: 'Break status updated successfully',
-      meetingStatus: joining_status,
-      data: meeting_Status
+      message: 'Meeting statuses updated successfully',
+      data: meetingData
     })
-  } catch {
-    res
-      .status(500)
-      .json({ message: 'Internal server error in meeting controller.' })
+  } catch (error) {
+    next(error)
   }
 }
 

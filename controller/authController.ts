@@ -85,7 +85,7 @@ export const registerUser = async (
         role
       },
       process.env.JWT_SECRET || 'Waqas',
-      { expiresIn: '1h' }
+      { expiresIn: '1d' }
     )
 
     res.json({
@@ -157,6 +157,57 @@ export const signUser = async (req: Request, res: Response): Promise<void> => {
   } catch (error) {
     console.error('Error during sign-in:', error)
     res.status(500).json({ error: 'An internal server error occurred.' })
+  }
+}
+export const updateUserDetails = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  const userId = req.user?.id // Assuming `req.user` is populated by a middleware like `authMiddleware`
+  const { name, email, cnic, password, dob } = req.body
+
+  try {
+    // Check if userId is provided (via token)
+    if (!userId) {
+      res.status(401).json({ error: 'Unauthorized access. Please log in.' })
+      return
+    }
+
+    // Find the user in the database
+    const existingUser = await prisma.user.findUnique({
+      where: { id: userId }
+    })
+
+    if (!existingUser) {
+      res.status(404).json({ error: 'User not found.' })
+      return
+    }
+
+    // Prepare updated data
+    const updatedData: any = { name, email, cnic, dateOfBirth: dob }
+
+    // Hash the password if provided
+    if (password) {
+      const salt = await bcrypt.genSalt(10)
+      const hashedPassword = await bcrypt.hash(password, salt)
+      updatedData.password = hashedPassword
+    }
+
+    // Update the user in the database
+    const updatedUser = await prisma.user.update({
+      where: { id: userId },
+      data: updatedData
+    })
+
+    res.status(200).json({
+      message: 'Profile updated successfully.',
+      updatedUser
+    })
+  } catch (error) {
+    console.error('Error updating user details:', error)
+    res.status(500).json({
+      error: 'An internal server error occurred while updating user details.'
+    })
   }
 }
 
