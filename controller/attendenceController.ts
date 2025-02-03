@@ -1,9 +1,9 @@
-import { Request, Response } from "express";
-import { PrismaClient } from "@prisma/client";
-import { z, ZodError } from "zod";
-import { pointsService } from "../services/points.services";
+import { Request, Response } from 'express'
+import { PrismaClient } from '@prisma/client'
+import { z, ZodError } from 'zod'
+import { pointsService } from '../services/points.services'
 
-const prisma = new PrismaClient();
+const prisma = new PrismaClient()
 
 // update specific record based on specific user; @Controlled By Admin Only
 export const updateAttendence = async (
@@ -11,43 +11,43 @@ export const updateAttendence = async (
   res: Response
 ): Promise<void> => {
   try {
-    const { id } = req.params;
-    const body = req.body;
+    const { id } = req.params
+    const body = req.body
 
     if (!id) {
-      res.status(400).json({ message: "User id is missing" });
+      res.status(400).json({ message: 'User id is missing' })
     }
 
     const attendanceSchema = z.object({
       checkin: z.date().optional(),
       checkout: z.date().optional(),
       date: z.date().optional(),
-      workStatus: z.enum(["ONSITE", "WORKFORMHOME", "HYBRID"]).optional(),
-    });
+      workStatus: z.enum(['ONSITE', 'WORKFORMHOME', 'HYBRID']).optional()
+    })
 
-    const data = attendanceSchema.parse(body);
+    const data = attendanceSchema.parse(body)
 
     const updatedAttendence = await prisma.attendence.update({
       where: {
-        id: Number(id),
+        id: Number(id)
       },
-      data,
-    });
+      data
+    })
 
     res.status(200).json({
-      message: "Attendence Record Updated Successfully",
-      data: updatedAttendence,
-    });
+      message: 'Attendence Record Updated Successfully',
+      data: updatedAttendence
+    })
   } catch (error: any) {
     if (error instanceof ZodError) {
-      res.status(400).json({ message: error.errors });
-      return;
+      res.status(400).json({ message: error.errors })
+      return
     }
 
-    console.error("Error during updating Attendence Record:", error);
-    res.status(500).json({ message: "Something went wrong!" });
+    console.error('Error during updating Attendence Record:', error)
+    res.status(500).json({ message: 'Something went wrong!' })
   }
-};
+}
 
 // Check-in controller
 export const checkinUser = async (
@@ -55,21 +55,21 @@ export const checkinUser = async (
   res: Response
 ): Promise<void> => {
   try {
-    const user = req.user;
-    const { workStatus, todayTask } = req.body;
+    const user = req.user
+    const { workStatus, todayTask } = req.body
 
-    const validStatuses = ["ONSITE", "WORKFORMHOME", "HYBRID"];
+    const validStatuses = ['ONSITE', 'WORKFORMHOME', 'HYBRID']
     if (!validStatuses.includes(workStatus)) {
-      res.status(400).json({ message: "Invalid work status provided!" });
-      return;
+      res.status(400).json({ message: 'Invalid work status provided!' })
+      return
     }
 
     if (!user?.id) {
-      res.status(403).json({ message: "User not authenticated!" });
-      return;
+      res.status(403).json({ message: 'User not authenticated!' })
+      return
     }
 
-    const currentDate = new Date();
+    const currentDate = new Date()
 
     // Create a new check-in record in the database
     const checkIn = await prisma.attendence.create({
@@ -78,40 +78,40 @@ export const checkinUser = async (
         checkin: currentDate,
         date: currentDate,
         checkout: null,
-        workStatus: workStatus as "ONSITE" | "WORKFORMHOME" | "HYBRID",
-        todayTask: todayTask || null, // Save today's task, if provided
-      },
-    });
+        workStatus: workStatus as 'ONSITE' | 'WORKFORMHOME' | 'HYBRID',
+        todayTask: todayTask || null // Save today's task, if provided
+      }
+    })
 
     // check if time is more than 10 am
     if (currentDate.getHours() < 10) {
-      pointsService.changeUserPoints(user.id, 200);
+      pointsService.changeUserPoints(user.id, 200)
     }
 
     if (currentDate.getHours() == 10) {
-      pointsService.changeUserPoints(user.id, 100);
+      pointsService.changeUserPoints(user.id, 100)
     }
 
     // after 10 am
     if (currentDate.getHours() > 10) {
       // per min decrease 50 points
-      const diff = currentDate.getHours() - 10;
-      const diffInMin = diff * 60 + currentDate.getMinutes();
-      const points = 50 * diffInMin;
+      const diff = currentDate.getHours() - 10
+      const diffInMin = diff * 60 + currentDate.getMinutes()
+      const points = 50 * diffInMin
 
-      pointsService.changeUserPoints(user.id, points);
+      pointsService.changeUserPoints(user.id, -points)
     }
 
     // Respond with the created check-in record
     res.status(201).json({
-      message: "Check-in successful.",
-      data: checkIn,
-    });
+      message: 'Check-in successful.',
+      data: checkIn
+    })
   } catch (error) {
-    console.error("Error during check-in:", error);
-    res.status(500).json({ message: "Internal server error." });
+    console.error('Error during check-in:', error)
+    res.status(500).json({ message: 'Internal server error.' })
   }
-};
+}
 
 // Check-out controller
 export const checkoutUser = async (
@@ -119,55 +119,55 @@ export const checkoutUser = async (
   res: Response
 ): Promise<void> => {
   try {
-    const user = req.user;
-    const { dayReport } = req.body;
+    const user = req.user
+    const { dayReport } = req.body
 
     if (!user?.id) {
-      res.status(401).json({ message: "User not authenticated!" });
-      return;
+      res.status(401).json({ message: 'User not authenticated!' })
+      return
     }
 
     // Find the latest check-in record for the user where checkout is null
     const lastCheckIn = await prisma.attendence.findFirst({
       where: {
         userId: user.id,
-        checkout: null,
-      },
-    });
+        checkout: null
+      }
+    })
 
     if (!lastCheckIn) {
-      res.status(400).json({ message: "No active check-in found!" });
-      return;
+      res.status(400).json({ message: 'No active check-in found!' })
+      return
     }
 
     // Update the check-in record with the checkout time and day report
     const updatedCheckIn = await prisma.attendence.update({
       where: {
-        id: lastCheckIn.id,
+        id: lastCheckIn.id
       },
       data: {
         checkout: new Date(),
-        dayReport: dayReport || null, // Save the day report, if provided
-      },
-    });
+        dayReport: dayReport || null // Save the day report, if provided
+      }
+    })
 
     // Calculate points based difference from the 6pm
-    const currentDate = new Date();
-    const diff = currentDate.getHours() - 18;
-    const points = 200 * diff;
+    const currentDate = new Date()
+    const diff = currentDate.getHours() - 18
+    const points = 200 * diff
 
-    pointsService.changeUserPoints(user.id, points);
+    pointsService.changeUserPoints(user.id, points)
 
     // Respond with the updated check-in record
     res.status(200).json({
-      message: "Check-out successful.",
-      data: updatedCheckIn,
-    });
+      message: 'Check-out successful.',
+      data: updatedCheckIn
+    })
   } catch (error) {
-    console.error("Error during check-out:", error);
-    res.status(500).json({ message: "Internal server error." });
+    console.error('Error during check-out:', error)
+    res.status(500).json({ message: 'Internal server error.' })
   }
-};
+}
 
 //Get the Current Checkin User
 export const getUserDetails = async (
@@ -175,11 +175,11 @@ export const getUserDetails = async (
   res: Response
 ): Promise<void> => {
   try {
-    const user = req.user;
+    const user = req.user
 
     if (!user?.id) {
-      res.status(401).json({ message: "User not authenticated!" });
-      return;
+      res.status(401).json({ message: 'User not authenticated!' })
+      return
     }
 
     // Fetch user details along with their check-in/check-out history
@@ -190,26 +190,26 @@ export const getUserDetails = async (
         email: true,
         role: true,
         cnic: true,
-        image: true,
-      },
-    });
+        image: true
+      }
+    })
 
     if (!userDetails) {
-      res.status(404).json({ message: "User not found!" });
-      return;
+      res.status(404).json({ message: 'User not found!' })
+      return
     }
 
     // Respond with user details
     res.status(200).json({
-      message: "User details retrieved successfully.",
-      data: userDetails,
-    });
+      message: 'User details retrieved successfully.',
+      data: userDetails
+    })
     //If error Occurs
   } catch (error) {
-    console.error("Error retrieving user details:", error);
-    res.status(500).json({ message: "Internal server error." });
+    console.error('Error retrieving user details:', error)
+    res.status(500).json({ message: 'Internal server error.' })
   }
-};
+}
 
 //Show all Attendence record; @Controlled By Admin Only
 export const allAttendence = async (
@@ -219,19 +219,19 @@ export const allAttendence = async (
   try {
     const allAttendence = await prisma.attendence.findMany({
       include: {
-        user: true,
-      },
-    });
+        user: true
+      }
+    })
 
     res.status(200).json({
-      message: "All Attendence Record Fetched Successfully",
-      data: allAttendence,
-    });
+      message: 'All Attendence Record Fetched Successfully',
+      data: allAttendence
+    })
   } catch (error) {
-    console.error("Error during fetching all Attendence Record:", error);
-    res.status(500).json({ message: "Internal server error." });
+    console.error('Error during fetching all Attendence Record:', error)
+    res.status(500).json({ message: 'Internal server error.' })
   }
-};
+}
 
 // show all attendence record based on specific date; @Controlled By Admin Only
 export const allAttendenceByDate = async (
@@ -239,38 +239,38 @@ export const allAttendenceByDate = async (
   res: Response
 ): Promise<void> => {
   try {
-    const { date } = req.body || {};
+    const { date } = req.body || {}
 
     if (!date) {
-      res.status(401).json({ message: "Date is Required!" });
-      return;
+      res.status(401).json({ message: 'Date is Required!' })
+      return
     }
 
-    const startDate = new Date(date);
-    const endDate = new Date(date);
-    endDate.setHours(23, 59, 59, 999);
+    const startDate = new Date(date)
+    const endDate = new Date(date)
+    endDate.setHours(23, 59, 59, 999)
 
     const allAttendence = await prisma.attendence.findMany({
       where: {
         date: {
           gte: startDate,
-          lte: endDate,
-        },
+          lte: endDate
+        }
       },
       include: {
-        user: true,
-      },
-    });
+        user: true
+      }
+    })
 
     res.status(200).json({
-      message: "All Attendence Record Fetched Successfully by Date",
-      data: allAttendence,
-    });
+      message: 'All Attendence Record Fetched Successfully by Date',
+      data: allAttendence
+    })
   } catch (error) {
-    console.error("Error during fetching all Attendence Record:", error);
-    res.status(500).json({ message: "Internal server error." });
+    console.error('Error during fetching all Attendence Record:', error)
+    res.status(500).json({ message: 'Internal server error.' })
   }
-};
+}
 
 //get all attendence record based on specific user ; @Controlled By Admin Only
 export const userAttendence = async (
@@ -278,31 +278,31 @@ export const userAttendence = async (
   res: Response
 ): Promise<void> => {
   try {
-    const { id } = req.body || {};
+    const { id } = req.body || {}
 
     if (!id) {
-      res.status(401).json({ message: "User Id is Required!" });
-      return;
+      res.status(401).json({ message: 'User Id is Required!' })
+      return
     }
 
     const userAttendence = await prisma.attendence.findMany({
       where: {
-        userId: Number(id),
+        userId: Number(id)
       },
       include: {
-        user: true,
-      },
-    });
+        user: true
+      }
+    })
 
     res.status(200).json({
-      message: "User Attendence Record Fetched Successfully",
-      data: userAttendence,
-    });
+      message: 'User Attendence Record Fetched Successfully',
+      data: userAttendence
+    })
   } catch (error) {
-    console.error("Error during fetching user Attendence Record:", error);
-    res.status(500).json({ message: "Internal server error." });
+    console.error('Error during fetching user Attendence Record:', error)
+    res.status(500).json({ message: 'Internal server error.' })
   }
-};
+}
 
 // get all attendence status of a specific user on specific date; @Controlled By Admin Only
 export const userAttendenceByDate = async (
@@ -310,79 +310,79 @@ export const userAttendenceByDate = async (
   res: Response
 ): Promise<void> => {
   try {
-    const { id, date } = req.body || {};
+    const { id, date } = req.body || {}
 
     if (!id || !date) {
-      res.status(401).json({ message: "User Id and date are required!" });
-      return;
+      res.status(401).json({ message: 'User Id and date are required!' })
+      return
     }
 
-    const startDate = new Date(date);
-    const endDate = new Date(date);
-    endDate.setHours(23, 59, 59, 999);
+    const startDate = new Date(date)
+    const endDate = new Date(date)
+    endDate.setHours(23, 59, 59, 999)
 
     const userAttendence = await prisma.attendence.findMany({
       where: {
         userId: Number(id),
         date: {
           gte: startDate,
-          lte: endDate,
-        },
+          lte: endDate
+        }
       },
       include: {
-        user: true,
-      },
-    });
+        user: true
+      }
+    })
 
     res.status(200).json({
-      message: "User Attendence Record Fetched Successfully by Date",
-      data: userAttendence,
-    });
+      message: 'User Attendence Record Fetched Successfully by Date',
+      data: userAttendence
+    })
   } catch (error) {
-    console.error("Error during fetching user Attendence Record:", error);
+    console.error('Error during fetching user Attendence Record:', error)
     res
       .status(500)
-      .json({ message: "Internal server error in Fetching by date." });
+      .json({ message: 'Internal server error in Fetching by date.' })
   }
-};
+}
 
 export const deleteByIdAndDate = async (
   req: Request,
   res: Response
 ): Promise<void> => {
   try {
-    const { id, date } = req.body || {};
+    const { id, date } = req.body || {}
 
     if (!id || !date) {
       res.status(401).json({
         message:
-          "USER ID AND DATE IS REQUIRED TO DELETE THE SPECIFIC USER ATTENDNENCE ON A SPECIFIC DATE",
-      });
-      return;
+          'USER ID AND DATE IS REQUIRED TO DELETE THE SPECIFIC USER ATTENDNENCE ON A SPECIFIC DATE'
+      })
+      return
     }
 
-    const startDate = new Date(date);
-    const endDate = new Date(date);
-    endDate.setHours(23, 59, 59, 999);
+    const startDate = new Date(date)
+    const endDate = new Date(date)
+    endDate.setHours(23, 59, 59, 999)
 
     const deleteAttendence = await prisma.attendence.deleteMany({
       where: {
         userId: Number(id),
         date: {
           gte: startDate,
-          lte: endDate,
-        },
-      },
-    });
+          lte: endDate
+        }
+      }
+    })
     res.status(200).json({
-      message: "User Deleted Successfuly on a specific Date or time",
-      deleteAttendence,
-    });
+      message: 'User Deleted Successfuly on a specific Date or time',
+      deleteAttendence
+    })
   } catch (error) {
-    console.error("Error During deleting the user Attendence Record", error);
-    res.status(500).json({ message: "Internal server error in delete route." });
+    console.error('Error During deleting the user Attendence Record', error)
+    res.status(500).json({ message: 'Internal server error in delete route.' })
   }
-};
+}
 
 //show all attendence record based on specific user;@Controlled By Admin Only
 

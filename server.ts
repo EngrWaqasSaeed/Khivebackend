@@ -5,6 +5,7 @@ import userRouter from './routes/userRoute'
 import attendenceRouter from './routes/attendenceRoute'
 import breakRouter from './routes/breakRoute'
 import meetingRouter from './routes/meetingRoute'
+import projectRouter from './routes/projectRoute'
 
 const app = express()
 app.use(cors())
@@ -17,6 +18,7 @@ app.use('/api/users', userRouter)
 app.use('/api/attendence', attendenceRouter)
 app.use('/api/break', breakRouter)
 app.use('/api/meeting', meetingRouter)
+app.use('/api/project', projectRouter)
 
 // Listeing port
 app.listen(3001, () => {

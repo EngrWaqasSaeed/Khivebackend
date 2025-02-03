@@ -10,7 +10,7 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = "postgresql://postgres:12345678@localhost:5432/khive_pointer?schema=public"
+  url      = "postgresql://postgres:0000@localhost:5432/khive_pointer?schema=public"
 }
 
 enum UserRole {
@@ -79,6 +79,7 @@ model Break {
 model Project_Delivery {
   id             Int         @id @default(autoincrement())
   project_status Join_Status @default(ONTIME)
+  date         DateTime
   userId         Int
   user           User        @relation(fields: [userId], references: [id], onDelete: Cascade)
 }

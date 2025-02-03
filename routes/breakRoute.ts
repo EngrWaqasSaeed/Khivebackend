@@ -11,7 +11,7 @@ import { isAdmin } from '../middleware/isAdmin'
 
 const breakRouter = express.Router()
 
-breakRouter.post('/', authenticate, breakStatus)
+breakRouter.post('/', authenticate, isAdmin, breakStatus)
 breakRouter.get('/', authenticate, isAdmin, allBreakRecord)
 breakRouter.get('/:id', authenticate, isAdmin, breakRecordById)
 breakRouter.put('/:id', authenticate, isAdmin, updateBreakRecord)
