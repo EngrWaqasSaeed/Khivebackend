@@ -129,7 +129,8 @@ export const updateUser = async (
   res: Response
 ): Promise<void> => {
   const { id } = req.params
-  const { name, cnic, joiningDate, dateOfBirth } = req.body
+  const { name, contact_number, joiningDate, dateOfBirth } = req.body
+  console.log(req.body)
 
   try {
     const user = await prisma.user.findUnique({ where: { id: Number(id) } })
@@ -142,7 +143,8 @@ export const updateUser = async (
       where: { id: Number(id) },
       data: {
         name,
-        cnic: Number(cnic),
+
+        contact_number: Number(contact_number),
         joiningDate: new Date(joiningDate),
         dateOfBirth: new Date(dateOfBirth)
       }

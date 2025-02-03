@@ -189,7 +189,7 @@ export const getUserDetails = async (
         name: true,
         email: true,
         role: true,
-        cnic: true,
+        contact_number: true,
         image: true
       }
     })

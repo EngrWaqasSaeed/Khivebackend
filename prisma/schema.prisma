@@ -23,7 +23,7 @@ model User {
   name              String             @db.VarChar(255)
   email             String             @unique @db.VarChar(255)
   password          String             @db.VarChar(255)
-  cnic              Int?               @unique
+  contact_number              Int?               @unique
   role              UserRole           @default(USER)
   image             String?
   joiningDate       DateTime?

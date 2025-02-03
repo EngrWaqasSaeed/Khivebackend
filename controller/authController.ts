@@ -14,7 +14,7 @@ export const registerUser = async (
     email,
     password,
     con_password,
-    cnic,
+    contact_number,
     image,
     joiningDate,
     dateOfBirth,
@@ -48,9 +48,9 @@ export const registerUser = async (
     const hashedPassword = await bcrypt.hash(password, salt)
 
     // Convert `cnic` to a number if it's a string
-    if (typeof cnic === 'string') {
-      cnic = Number(cnic)
-      if (isNaN(cnic)) {
+    if (typeof contact_number === 'string') {
+      contact_number = Number(contact_number)
+      if (isNaN(contact_number)) {
         res
           .status(400)
           .json({ error: 'Invalid CNIC format. It should be a number.' })
@@ -64,7 +64,7 @@ export const registerUser = async (
         name,
         email,
         password: hashedPassword,
-        cnic: cnic,
+        contact_number: contact_number,
         image,
         joiningDate: joiningDate ? new Date(joiningDate) : undefined, // Convert joiningDate to Date if provided
         dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : undefined, // Convert dateOfBirth to Date if provided
@@ -78,7 +78,7 @@ export const registerUser = async (
         id: newUser.id,
         name: newUser.name,
         email: newUser.email,
-        cnic: newUser.cnic,
+        contact_number: newUser.contact_number,
         imageurl: newUser.image,
         joiningDate: newUser.joiningDate,
         dateOFBirth: newUser.dateOfBirth,
@@ -133,7 +133,7 @@ export const signUser = async (req: Request, res: Response): Promise<void> => {
         id: user.id,
         name: user.name,
         email: user.email,
-        cnic: user.cnic,
+        contact_number: user.contact_number,
         imageurl: user.image,
         joiningDate: user.joiningDate,
         dateOFBirth: user.dateOfBirth
@@ -150,7 +150,7 @@ export const signUser = async (req: Request, res: Response): Promise<void> => {
         id: user.id,
         name: user.name,
         email: user.email,
-        cnic: user.cnic,
+        contact_number: user.contact_number,
         imageurl: user.image
       }
     })
@@ -164,7 +164,7 @@ export const updateUserDetails = async (
   res: Response
 ): Promise<void> => {
   const userId = req.user?.id // Assuming `req.user` is populated by a middleware like `authMiddleware`
-  const { name, email, cnic, password, dob } = req.body
+  const { name, email, contact_number, password, dob } = req.body
 
   try {
     // Check if userId is provided (via token)
@@ -184,7 +184,7 @@ export const updateUserDetails = async (
     }
 
     // Prepare updated data
-    const updatedData: any = { name, email, cnic, dateOfBirth: dob }
+    const updatedData: any = { name, email, contact_number, dateOfBirth: dob }
 
     // Hash the password if provided
     if (password) {
